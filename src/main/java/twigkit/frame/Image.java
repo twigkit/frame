@@ -25,7 +25,7 @@ import java.net.URL;
  * @author mr.olafsson
  */
 public class Image implements Serializable {
-
+	
 	public static enum ContentType {
 
 		PNG("image/png", "png"), JPEG("image/jpeg", "jpg");
@@ -49,6 +49,7 @@ public class Image implements Serializable {
 	}
 	
 	private BufferedImage image;
+	private URL url;
 
 	public Image(BufferedImage image) {
 		this.image = image;
@@ -58,27 +59,23 @@ public class Image implements Serializable {
 		return image;
 	}
 
+	public URL getUrl() {
+		return url;
+	}
+
+	public void setUrl(final URL url) {
+		this.url = url;
+	}
+
+	public boolean hasUrl() {
+		return url != null;
+	}
+
 	public int getHeight() {
 		return image.getHeight();
 	}
 
 	public int getWidth() {
 		return image.getWidth();
-	}
-
-	public static Image fromURL(String urlAsString) throws IOException {
-		if (urlAsString != null) {
-			return fromURL(new URL(urlAsString));
-		}
-
-		return null;
-	}
-
-	public static Image fromURL(URL url) throws IOException {
-		return new Image(ImageIO.read(url));
-	}
-
-	public static Image from(InputStream inputStream) throws IOException {
-		return new Image(ImageIO.read(inputStream));
 	}
 }

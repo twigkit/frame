@@ -44,6 +44,20 @@
 		</developer>
 	</developers>
 
+	<distributionManagement>
+        <repository>
+            <id>twigkit.internal</id>
+            <name>Internal Release Repository</name>
+            <url>dav:http://twigkit.com/archiva/repository/internal/</url>
+        </repository>
+        <snapshotRepository>
+            <id>twigkit.snapshots</id>
+            <name>Internal Snapshot Repository</name>
+            <url>dav:http://twigkit.com/archiva/repository/snapshots/</url>
+            <uniqueVersion>true</uniqueVersion>
+        </snapshotRepository>
+    </distributionManagement>
+
 	<build>
 		<plugins>
 			<plugin>

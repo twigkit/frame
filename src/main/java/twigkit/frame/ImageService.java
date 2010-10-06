@@ -16,14 +16,22 @@ package twigkit.frame;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 
 /**
  * @author mr.olafsson
  */
 public interface ImageService {
 
-	Image resize(Image image, int newWidthInPixels, int newHeightInPixels);
+	Image fromURL(String urlAsString) throws IOException;
+
+	Image fromURL(URL url) throws IOException;
+
+	Image from(InputStream inputStream) throws IOException;
+
+	Image resize(Image image, int newWidthInPixels, int newHeightInPixels) throws Exception;
 
 	void write(Image image, File file) throws IOException;
 

@@ -17,17 +17,34 @@ package twigkit.frame;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
+import java.net.URL;
 
 /**
  * @author mr.olafsson
  */
 public class ImageIOService implements ImageService {
 
-	public Image resize(Image image, int newWidthInPixels, int newHeightInPixels) {
+	public Image fromURL(String urlAsString) throws IOException {
+		if (urlAsString != null) {
+			return fromURL(new URL(urlAsString));
+		}
+
+		return null;
+	}
+
+	public Image fromURL(URL url) throws IOException {
+		Image image = new Image(ImageIO.read(url));
+		image.setUrl(url);
+		
+		return image;
+	}
+
+	public Image from(InputStream inputStream) throws IOException {
+		return new Image(ImageIO.read(inputStream));
+	}
+
+	public Image resize(Image image, int newWidthInPixels, int newHeightInPixels) throws Exception {
 		int calcWidth = newWidthInPixels > 0 ? newWidthInPixels : (newHeightInPixels * image.getWidth() / image.getHeight());
 		int calcHeight = newHeightInPixels > 0 ? newHeightInPixels : (newWidthInPixels * image.getHeight() / image.getWidth());
 

@@ -36,7 +36,7 @@ public class CachedImageServiceTest {
 	public void init() {
 		Properties properties = new Properties();
 		properties.setProperty("services.images.offline.path", "/tmp/twigkit/offline/images/");
-		service = new CachedImageService(properties);
+		service = new CachedImageIOService(properties);
 	}
 
 	@Test
@@ -53,14 +53,14 @@ public class CachedImageServiceTest {
 	}
 
 	@Test
-	public void testResizeImage() {
+	public void testResizeImage() throws Exception {
 		Image resized = service.resize(getImage(), 100, 0);
 
 		Assert.assertEquals(100, resized.getWidth());
 	}
 
 	@Test
-	public void testWriteImage() {
+	public void testWriteImage() throws Exception {
 		Image resized = service.resize(getImage(), 150, 0);
 
 		File f = new File(folder.getRoot(), "myFile");
@@ -76,7 +76,7 @@ public class CachedImageServiceTest {
 	}
 
 	@Test
-	public void testWriteOutputStream() {
+	public void testWriteOutputStream() throws Exception {
 		Image resized = service.resize(getImage(), 150, 0);
 
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -92,7 +92,7 @@ public class CachedImageServiceTest {
 
 	private Image getImage() {
 		try {
-			return Image.from(new java.io.FileInputStream(new File(this.getClass().getClassLoader().getResource("sample.jpg").getFile())));
+			return new ImageIOService().from(new java.io.FileInputStream(new File(this.getClass().getClassLoader().getResource("sample.jpg").getFile())));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
