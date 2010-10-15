@@ -25,75 +25,77 @@ import java.net.URL;
  */
 public class ImageIOService implements ImageService {
 
-	public Image fromURL(String urlAsString) throws IOException {
-		if (urlAsString != null) {
-			return fromURL(new URL(urlAsString));
-		}
+    public Image fromURL(String urlAsString) throws IOException {
+        if (urlAsString != null) {
+            return fromURL(new URL(urlAsString));
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	public Image fromURL(URL url) throws IOException {
-		Image image = new Image(ImageIO.read(url));
-		image.setUrl(url);
-		
-		return image;
-	}
+    public Image fromURL(URL url) throws IOException {
+        Image image = new Image(ImageIO.read(url));
+        image.setUrl(url);
 
-	public Image from(InputStream inputStream) throws IOException {
-		return new Image(ImageIO.read(inputStream));
-	}
+        return image;
+    }
 
-	public Image resize(Image image, int newWidthInPixels, int newHeightInPixels) throws Exception {
-		int calcWidth = newWidthInPixels > 0 ? newWidthInPixels : (newHeightInPixels * image.getWidth() / image.getHeight());
-		int calcHeight = newHeightInPixels > 0 ? newHeightInPixels : (newWidthInPixels * image.getHeight() / image.getWidth());
+    public Image from(InputStream inputStream) throws IOException {
+        return new Image(ImageIO.read(inputStream));
+    }
 
-		int type = image.getBufferedImage().getType();
+    public Image resize(Image image, int newWidthInPixels, int newHeightInPixels) throws Exception {
+        int calcWidth = newWidthInPixels > 0 ? newWidthInPixels : (newHeightInPixels * image.getWidth() / image.getHeight());
+        int calcHeight = newHeightInPixels > 0 ? newHeightInPixels : (newWidthInPixels * image.getHeight() / image.getWidth());
+
+        int type = image.getBufferedImage().getType();
         if (type == BufferedImage.TYPE_CUSTOM) {
-			// PNG images have a custom type, this will preserve alpha channel
+            // PNG images have a custom type, this will preserve alpha channel
             type = BufferedImage.TYPE_3BYTE_BGR;
         }
 
-		BufferedImage scaledBI = new BufferedImage(calcWidth, calcHeight,type);
-		Graphics2D g = scaledBI.createGraphics();
-		// g.clearRect(0, 0, calcWidth, calcHeight);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,	RenderingHints.VALUE_ANTIALIAS_ON);
-		
-		g.setComposite(AlphaComposite.Src);
+        BufferedImage scaledBI = new BufferedImage(calcWidth, calcHeight, type);
+        Graphics2D g = scaledBI.createGraphics();
+        // g.clearRect(0, 0, calcWidth, calcHeight);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-		BufferedImage source = image.getBufferedImage();
+        g.setComposite(AlphaComposite.Src);
 
-		// Center cropping if necessary
-		if (newWidthInPixels == newHeightInPixels && source.getWidth() != source.getHeight()) {
-			int top = 0, left = 0, width = source.getWidth(), height =  source.getHeight();
-			if (width > source.getHeight()) {
-				left = (width - height) / 2;
-				width = height;
-			} else {
-				top = (height - width) / 2;
-				height = width;
-			}
-			source = image.getBufferedImage().getSubimage(left, top, width, height);
-		}
+        BufferedImage source = image.getBufferedImage();
 
-		g.drawImage(source, 0, 0, calcWidth, calcHeight, null);
-		g.dispose();
+        // Center cropping if necessary
+        if (newWidthInPixels == newHeightInPixels && source.getWidth() != source.getHeight()) {
+            int top = 0, left = 0, width = source.getWidth(), height = source.getHeight();
+            if (width > source.getHeight()) {
+                left = (width - height) / 2;
+                width = height;
+            } else {
+                top = (height - width) / 2;
+                height = width;
+            }
+            source = image.getBufferedImage().getSubimage(left, top, width, height);
+        }
 
-		return new twigkit.frame.Image(scaledBI);
-	}
+        g.drawImage(source, 0, 0, calcWidth, calcHeight, null);
+        g.dispose();
 
-	public void write(Image image, File file) throws IOException {
-		FileOutputStream outputStream = new FileOutputStream(file);
-		write(image, outputStream);
-	}
+        return new twigkit.frame.Image(scaledBI);
+    }
 
-	public void write(Image image, OutputStream outputStream) throws IOException {
-		write(image, outputStream, Image.ContentType.PNG);
-	}
+    public void write(Image image, File file) throws IOException {
+        FileOutputStream outputStream = new FileOutputStream(file);
+        write(image, outputStream);
+    }
 
-	public void write(Image image, OutputStream outputStream, Image.ContentType contentType) throws IOException {
-		ImageIO.write(image.getBufferedImage(), contentType.getSuffix(), outputStream);
-	}
+    public void write(Image image, OutputStream outputStream) throws IOException {
+        write(image, outputStream, Image.ContentType.PNG);
+    }
+
+    public void write(Image image, OutputStream outputStream, Image.ContentType contentType) throws IOException {
+        if (image.getBufferedImage() != null) {
+            ImageIO.write(image.getBufferedImage(), contentType.getSuffix(), outputStream);
+        }
+    }
 }

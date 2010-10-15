@@ -147,6 +147,8 @@ public class CachedImageIOService extends ImageIOService {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
 				}
+
+                return resized;
 			}
 		}
 
