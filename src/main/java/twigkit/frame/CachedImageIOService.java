@@ -64,7 +64,7 @@ public class CachedImageIOService extends ImageIOService {
 
 	@Override
 	public Image fromURL(final URL url) throws IOException {
-		if (repository != null) {
+		if (repository != null && repository.exists()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Getting Image from cache [" + repository.getAbsolutePath() + "]");
 			}
@@ -128,7 +128,7 @@ public class CachedImageIOService extends ImageIOService {
 
 	@Override
 	public Image resize(final Image image, final int newWidthInPixels, final int newHeightInPixels) throws Exception {
-		if (repository != null && image.hasUrl()) {
+		if (repository != null && repository.exists() && image.hasUrl()) {
 			File file = getFileFromURL(image.getUrl(), newWidthInPixels, newHeightInPixels);
 
 			if (file.exists()) {
