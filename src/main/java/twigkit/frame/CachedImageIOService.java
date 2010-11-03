@@ -58,7 +58,7 @@ public class CachedImageIOService extends ImageIOService {
 
 			logger.info("CachedImageIOService offline path: " + repository.getAbsolutePath());
 		} else {
-			logger.error("CachedImageIOService failed to load. An offline path (" + SERVICES_IMAGES_OFFLINE_PATH + ") must be specified in twigkit.properties!");
+			logger.info("CachedImageIOService disabled! An offline path (" + SERVICES_IMAGES_OFFLINE_PATH + ") must be specified in twigkit.properties.");
 		}
 	}
 
