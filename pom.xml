@@ -19,10 +19,6 @@
 		</license>
 	</licenses>
 
-	<scm>
-		<url>http://github.com/twigkit/gsa-java-api</url>
-	</scm>
-
 	<organization>
 		<name>TwigKit</name>
 		<url>http://twigkit.com</url>
@@ -44,17 +40,43 @@
 		</developer>
 	</developers>
 
-	<distributionManagement>
+	<issueManagement>
+        <system>Github</system>
+        <url>https://github.com/twigkit/frame/issues</url>
+    </issueManagement>
+
+    <ciManagement>
+        <system>Hudson</system>
+        <url>http://twigkit.com/hudson/frame/fig/</url>
+    </ciManagement>
+
+    <scm>
+        <connection>scm:git:git://github.com/TwigKit/frame.git</connection>
+        <developerConnection>scm:git:git@github.com:twigkit/frame.git</developerConnection>
+        <url>https://github.com/twigkit/frame</url>
+    </scm>
+
+    <repositories>
         <repository>
-            <id>twigkit.internal</id>
-            <name>Internal Release Repository</name>
-            <url>dav:http://twigkit.com/archiva/repository/internal/</url>
+            <id>twigkit.com</id>
+            <url>http://twigkit.com/artifactory/repo</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>twigkit.com</id>
+            <url>http://twigkit.com/artifactory/twigkit</url>
         </repository>
         <snapshotRepository>
-            <id>twigkit.snapshots</id>
-            <name>Internal Snapshot Repository</name>
-            <url>dav:http://twigkit.com/archiva/repository/snapshots/</url>
-            <uniqueVersion>true</uniqueVersion>
+            <id>twigkit.com</id>
+            <url>http://twigkit.com/artifactory/twigkit</url>
         </snapshotRepository>
     </distributionManagement>
 
