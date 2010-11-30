@@ -51,12 +51,12 @@ public class ImageIOService implements ImageService {
         int type = image.getBufferedImage().getType();
         if (type == BufferedImage.TYPE_CUSTOM) {
             // PNG images have a custom type, this will preserve alpha channel
-            type = BufferedImage.TYPE_3BYTE_BGR;
+            type = BufferedImage.TYPE_4BYTE_ABGR;
         }
 
         BufferedImage scaledBI = new BufferedImage(calcWidth, calcHeight, type);
         Graphics2D g = scaledBI.createGraphics();
-        // g.clearRect(0, 0, calcWidth, calcHeight);
+//        g.clearRect(0, 0, calcWidth, calcHeight);
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
