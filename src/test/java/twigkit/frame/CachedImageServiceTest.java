@@ -70,7 +70,7 @@ public class CachedImageServiceTest {
 			e.printStackTrace();
 		}
 
-		Assert.assertEquals(58026, f.length());
+		Assert.assertTrue(f.length() > 50000 && f.length() < 60000);
 
 		f.delete();
 	}
@@ -87,7 +87,7 @@ public class CachedImageServiceTest {
 			e.printStackTrace();
 		}
 
-		Assert.assertEquals(58026, stream.size());
+		Assert.assertTrue(stream.size() > 50000 && stream.size() < 60000);
 	}
 
 	private Image getImage() {
