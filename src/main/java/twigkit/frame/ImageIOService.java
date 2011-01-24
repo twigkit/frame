@@ -44,53 +44,15 @@ public class ImageIOService implements ImageService {
         return new Image(ImageIO.read(inputStream));
     }
 
-    public Image resize(Image image, int newWidthInPixels, int newHeightInPixels) throws Exception {
-        int calcWidth = newWidthInPixels > 0 ? newWidthInPixels : (newHeightInPixels * image.getWidth() / image.getHeight());
-        int calcHeight = newHeightInPixels > 0 ? newHeightInPixels : (newWidthInPixels * image.getHeight() / image.getWidth());
-
-        int type = image.getBufferedImage().getType();
-        if (type == BufferedImage.TYPE_CUSTOM) {
-            // PNG images have a custom type, this will preserve alpha channel
-            type = BufferedImage.TYPE_4BYTE_ABGR;
-        }
-
-        BufferedImage scaledBI = new BufferedImage(calcWidth, calcHeight, type);
-        Graphics2D g = scaledBI.createGraphics();
-//        g.clearRect(0, 0, calcWidth, calcHeight);
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        g.setComposite(AlphaComposite.Src);
-
-        BufferedImage source = image.getBufferedImage();
-
-        // Center cropping if necessary
-        if (newWidthInPixels == newHeightInPixels && source.getWidth() != source.getHeight()) {
-            int top = 0, left = 0, width = source.getWidth(), height = source.getHeight();
-            if (width > source.getHeight()) {
-                left = (width - height) / 2;
-                width = height;
-            } else {
-                top = (height - width) / 2;
-                height = width;
-            }
-            source = image.getBufferedImage().getSubimage(left, top, width, height);
-        }
-
-        g.drawImage(source, 0, 0, calcWidth, calcHeight, null);
-        g.dispose();
-
-        return new twigkit.frame.Image(scaledBI);
-    }
-
     public void write(Image image, File file) throws IOException {
         FileOutputStream outputStream = new FileOutputStream(file);
         write(image, outputStream);
+	    outputStream.close();
     }
 
     public void write(Image image, OutputStream outputStream) throws IOException {
         write(image, outputStream, Image.ContentType.PNG);
+
     }
 
     public void write(Image image, OutputStream outputStream, Image.ContentType contentType) throws IOException {

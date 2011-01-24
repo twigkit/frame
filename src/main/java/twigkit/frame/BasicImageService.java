@@ -14,27 +14,11 @@
  */
 package twigkit.frame;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-
 /**
  * @author mr.olafsson
  */
-public interface ImageService {
+public interface BasicImageService extends ImageService {
 
-	Image fromURL(String urlAsString) throws IOException;
+	Image resize(Image image, int newWidthInPixels, int newHeightInPixels) throws Exception;
 
-	Image fromURL(URL url) throws IOException;
-
-	Image from(InputStream inputStream) throws IOException;
-
-	void write(Image image, File file) throws IOException;
-
-	void write(Image image, OutputStream outputStream) throws IOException;
-
-	void write(Image image, OutputStream outputStream, Image.ContentType contentType) throws IOException;
-	
 }

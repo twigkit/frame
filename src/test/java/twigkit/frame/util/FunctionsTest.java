@@ -16,7 +16,6 @@ package twigkit.frame.util;
 
 import org.junit.Assert;
 import org.junit.Test;
-import twigkit.frame.util.Functions;
 
 /**
  * @author mr.olafsson

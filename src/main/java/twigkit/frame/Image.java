@@ -14,10 +14,7 @@
  */
 package twigkit.frame;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URL;
 
@@ -28,7 +25,7 @@ public class Image implements Serializable {
 	
 	public static enum ContentType {
 
-		PNG("image/png", "png"), JPEG("image/jpeg", "jpg");
+		PNG("image/png", "png"), JPEG("image/jpeg", "jpg"), TIFF("image/tiff", "tif"), UNKNOWN("application/octet-stream", "");
 
 		private String contentType;
 		private String suffix;
@@ -50,6 +47,7 @@ public class Image implements Serializable {
 	
 	private BufferedImage image;
 	private URL url;
+	private ContentType type;
 
 	public Image(BufferedImage image) {
 		this.image = image;
@@ -77,5 +75,13 @@ public class Image implements Serializable {
 
 	public int getWidth() {
 		return image.getWidth();
+	}
+
+	public ContentType getType() {
+		return type;
+	}
+
+	public void setType(ContentType type) {
+		this.type = type;
 	}
 }

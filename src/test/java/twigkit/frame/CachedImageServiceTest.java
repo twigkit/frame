@@ -29,7 +29,7 @@ import java.util.Properties;
  */
 public class CachedImageServiceTest {
 
-	private ImageService service;
+	private BasicImageService service;
 	private TemporaryFolder folder = new TemporaryFolder();
 
 	@Before

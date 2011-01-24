@@ -29,7 +29,7 @@ import java.util.Properties;
 /**
  * @author mr.olafsson
  */
-public class CachedImageIOService extends ImageIOService {
+public class CachedImageIOService extends BasicImageIOService {
 
 	private static final Logger logger = LoggerFactory.getLogger(CachedImageIOService.class);
 
