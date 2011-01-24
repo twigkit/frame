@@ -1,6 +1,7 @@
 package twigkit.frame.util;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import twigkit.frame.Image;
 import twigkit.frame.ImageIOService;
@@ -15,6 +16,7 @@ import java.io.IOException;
 public class TIFFUtilsTest {
 
 	@Test
+	@Ignore
 	public void multiPage() {
 		try {
 			Image img = TIFFUtils.getPage(new java.io.FileInputStream(new File(this.getClass().getClassLoader().getResource("multipage-sample.tif").getFile())), 1);
