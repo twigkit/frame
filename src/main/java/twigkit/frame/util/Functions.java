@@ -20,6 +20,6 @@ package twigkit.frame.util;
 public class Functions {
 
 	public static String useImageService(String text, String serviceURL, int width, int height) {
-		return text.replaceAll("\\<img.*?src=[\"'](.*?)[\"'].*?(\\/)?\\>", "<img src=\"" + serviceURL + "?width=" + width + "&height=" + height + "&url=$1\" width=\"" + width + "\" height=\"" + height + "\" />");
+		return text.replaceAll("\\<img.*?src=[\"'](.*?)[\"'].*?(\\/)?\\>", "<img src=\"" + serviceURL + "?width=" + width + "&height=" + height + "&url=$1\"" + (width > -1 ? " width=\"" + width + "\"" : "") + (height > -1 ? " height=\"" + height + "\"" : "") + " />");
 	}
 }
