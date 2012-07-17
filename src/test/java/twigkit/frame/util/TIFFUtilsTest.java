@@ -3,6 +3,8 @@ package twigkit.frame.util;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import twigkit.frame.Image;
 import twigkit.frame.ImageIOService;
 
@@ -15,6 +17,8 @@ import java.io.IOException;
  */
 public class TIFFUtilsTest {
 
+    private static final Logger logger = LoggerFactory.getLogger(TIFFUtilsTest.class);
+
 	@Test
 	@Ignore
 	public void multiPage() {
@@ -26,7 +30,7 @@ public class TIFFUtilsTest {
 
 			Assert.assertEquals(107489, stream.size());
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("Failed to load TIFF image", e);
 		}
 	}
 }

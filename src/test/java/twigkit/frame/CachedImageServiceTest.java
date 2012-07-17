@@ -18,6 +18,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -28,6 +30,8 @@ import java.util.Properties;
  * @author mr.olafsson
  */
 public class CachedImageServiceTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(CachedImageServiceTest.class);
 
 	private BasicImageService service;
 	private TemporaryFolder folder = new TemporaryFolder();
@@ -67,7 +71,7 @@ public class CachedImageServiceTest {
 		try {
 			service.write(resized, f);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("Failed to write image", e);
 		}
 
 		Assert.assertTrue(f.length() > 50000 && f.length() < 60000);
@@ -84,7 +88,7 @@ public class CachedImageServiceTest {
 		try {
 			service.write(resized, stream);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("Failed to write image", e);
 		}
 
 		Assert.assertTrue(stream.size() > 50000 && stream.size() < 60000);
@@ -94,7 +98,7 @@ public class CachedImageServiceTest {
 		try {
 			return new ImageIOService().from(new java.io.FileInputStream(new File(this.getClass().getClassLoader().getResource("sample.jpg").getFile())));
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error("Failed to get image", e);
 		}
 
 		return null;

@@ -52,7 +52,7 @@ public class CachedImageIOService extends BasicImageIOService {
 					FileUtils.forceMkdir(repository);
 					logger.info("CachedImageIOService created offline repository: " + repository.getAbsolutePath());
 				} catch (IOException e) {
-					e.printStackTrace();
+					logger.error("Failed to create offline repository", e);
 				}
 			}
 
