@@ -60,7 +60,7 @@
         <repository>
             <id>repo.twigkit.com</id>
             <name>TwigKit</name>
-            <url>http://twigkit.artifactoryonline.com/twigkit/</url>
+            <url>http://twigkit.artifactoryonline.com/twigkit/repo/</url>
             <releases>
                 <enabled>true</enabled>
                 <updatePolicy>never</updatePolicy>
