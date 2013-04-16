@@ -63,6 +63,24 @@ public class CachedImageServiceTest {
 		Assert.assertEquals(100, resized.getWidth());
 	}
 
+    @Test
+    public void testResizeTIFFImage() throws Exception {
+        Image resized = service.resize(getImage("kodak.tif"), 450, 0);
+
+        Assert.assertEquals(450, resized.getWidth());
+
+        File f = new File(folder.getRoot(), "kodak-small.tif");
+        try {
+            service.write(resized, f);
+        } catch (IOException e) {
+            logger.error("Failed to write image", e);
+        }
+
+        Assert.assertTrue(f.length() > 6000 && f.length() < 6500);
+
+        f.delete();
+    }
+
 	@Test
 	public void testWriteImage() throws Exception {
 		Image resized = service.resize(getImage(), 150, 0);
@@ -94,9 +112,13 @@ public class CachedImageServiceTest {
 		Assert.assertTrue(stream.size() > 50000 && stream.size() < 60000);
 	}
 
-	private Image getImage() {
+    private Image getImage() {
+        return getImage("sample.jpg");
+    }
+
+	private Image getImage(String name) {
 		try {
-			return new ImageIOService().from(new java.io.FileInputStream(new File(this.getClass().getClassLoader().getResource("sample.jpg").getFile())));
+			return new ImageIOService().from(new java.io.FileInputStream(new File(this.getClass().getClassLoader().getResource(name).getFile())));
 		} catch (IOException e) {
 			logger.error("Failed to get image", e);
 		}
