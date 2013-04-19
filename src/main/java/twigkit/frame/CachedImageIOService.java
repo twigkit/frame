@@ -71,7 +71,11 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
     @Override
-	public Image fromURL(final URL url) throws IOException {
+    public Image fromURL(final URL url) throws IOException {
+        return fromURL(url, true);
+    }
+
+	public Image fromURL(final URL url, boolean writeToCache) throws IOException {
 		if (repository != null && repository.exists()) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Getting Image from cache [" + repository.getAbsolutePath() + "]");
@@ -90,11 +94,14 @@ public class CachedImageIOService extends BasicImageIOService {
 			} else {
 				Image image = super.fromURL(url);
 				image.setUrl(url);
-				ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
 
-				if (logger.isDebugEnabled()) {
-					logger.debug("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
-				}
+                if (writeToCache) {
+                    ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
+
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
+                    }
+                }
 
 				return image;
 			}
