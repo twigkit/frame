@@ -39,30 +39,38 @@ public class CachedImageIOService extends BasicImageIOService {
 
 	private File repository;
 
+    public CachedImageIOService() {
+        // Make sure you call setOfflinePath();
+    }
+
 	public CachedImageIOService(Properties properties) {
 		this(properties.getProperty(SERVICES_IMAGES_OFFLINE_PATH));
 	}
 
 	public CachedImageIOService(String offlinePath) {
-		if (offlinePath != null && offlinePath.length() > 0) {
-			repository = new File(offlinePath);
-
-			if (!repository.exists()) {
-				try {
-					FileUtils.forceMkdir(repository);
-					logger.info("CachedImageIOService created offline repository: " + repository.getAbsolutePath());
-				} catch (IOException e) {
-					logger.error("Failed to create offline repository", e);
-				}
-			}
-
-			logger.info("CachedImageIOService offline path: " + repository.getAbsolutePath());
-		} else {
-			logger.info("CachedImageIOService disabled! An offline path must be specified!");
-		}
+        setOfflinePath(offlinePath);
 	}
 
-	@Override
+    public void setOfflinePath(String offlinePath) {
+        if (offlinePath != null && offlinePath.length() > 0) {
+            repository = new File(offlinePath);
+
+            if (!repository.exists()) {
+                try {
+                    FileUtils.forceMkdir(repository);
+                    logger.info("CachedImageIOService created offline repository: " + repository.getAbsolutePath());
+                } catch (IOException e) {
+                    logger.error("Failed to create offline repository", e);
+                }
+            }
+
+            logger.info("CachedImageIOService offline path: " + repository.getAbsolutePath());
+        } else {
+            logger.info("CachedImageIOService disabled! An offline path must be specified!");
+        }
+    }
+
+    @Override
 	public Image fromURL(final URL url) throws IOException {
 		if (repository != null && repository.exists()) {
 			if (logger.isDebugEnabled()) {
