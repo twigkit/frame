@@ -5,7 +5,7 @@ Frame - The Java Image Service
 
 ## Troubleshooting
 
-# Image services failing for TIFF images on a Windows machine
+### Image services failing for TIFF images on a Windows machine
 
 The standard JDK for Windows only ships with a limited number of image codecs, which are needed for manipulating images in Frame. In particular, it lacks support for TIFF images. This results in image services failing for certain image types, such as TIFF. A typical symptom is a null-pointer exception when Frame is trying to read the image data, e.g.
 
