@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>twigkit</groupId>
     <artifactId>frame</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1</version>
     <packaging>jar</packaging>
     <name>frame</name>
     <description>Simple API and Web Service for manipulating images.</description>
