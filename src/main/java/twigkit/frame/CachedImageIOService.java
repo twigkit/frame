@@ -77,15 +77,15 @@ public class CachedImageIOService extends BasicImageIOService {
 
 	public Image fromURL(final URL url, boolean writeToCache) throws IOException {
 		if (repository != null && repository.exists()) {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Getting Image from cache [" + repository.getAbsolutePath() + "]");
+			if (logger.isTraceEnabled()) {
+				logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
 			}
 
 			File file = getFileFromURL(url, 0, 0);
 
 			if (file.exists()) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Getting Image [" + file.getName() + "] from cache");
+				if (logger.isTraceEnabled()) {
+					logger.trace("Getting Image [" + file.getName() + "] from cache");
 				}
 				BufferedImage buf = ImageIO.read(file);
 				Image image = new Image(buf);
@@ -98,8 +98,8 @@ public class CachedImageIOService extends BasicImageIOService {
                 if (writeToCache) {
                     ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
 
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
                     }
                 }
 
@@ -147,8 +147,8 @@ public class CachedImageIOService extends BasicImageIOService {
 			File file = getFileFromURL(image.getUrl(), newWidthInPixels, newHeightInPixels);
 
 			if (file.exists()) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Getting Image [" + file.getName() + "] from cache");
+				if (logger.isTraceEnabled()) {
+					logger.trace("Getting Image [" + file.getName() + "] from cache");
 				}
 				BufferedImage buf = ImageIO.read(file);
 				Image bufferedImage = new Image(buf);
@@ -159,8 +159,8 @@ public class CachedImageIOService extends BasicImageIOService {
 				Image resized = super.resize(image, newWidthInPixels, newHeightInPixels);
 				ImageIO.write(resized.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
 
-				if (logger.isDebugEnabled()) {
-					logger.debug("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
+				if (logger.isTraceEnabled()) {
+					logger.trace("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
 				}
 
                 return resized;
