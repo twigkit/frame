@@ -58,7 +58,7 @@
 
     <repositories>
         <repository>
-            <id>repo.twigkit.com</id>
+            <id>twigkit.com</id>
             <name>TwigKit</name>
             <url>http://twigkit.artifactoryonline.com/twigkit/repo/</url>
             <releases>
@@ -76,14 +76,14 @@
 
     <distributionManagement>
         <repository>
-            <id>repo.twigkit.com-releases</id>
-            <name>TwigKit Releases</name>
-            <url>http://twigkit.artifactoryonline.com/twigkit/release</url>
+            <id>twigkit.com-releases</id>
+            <name>Twigkit Releases</name>
+            <url>http://twigkit.artifactoryonline.com/twigkit/release/</url>
         </repository>
         <snapshotRepository>
-            <id>repo.twigkit.com-snapshots</id>
-            <name>TwigKit Snapshots</name>
-            <url>http://twigkit.artifactoryonline.com/twigkit/snapshot</url>
+            <id>twigkit.com-snapshots</id>
+            <name>Twigkit Snapshots</name>
+            <url>http://twigkit.artifactoryonline.com/twigkit/snapshot/</url>
             <uniqueVersion>true</uniqueVersion>
         </snapshotRepository>
     </distributionManagement>
