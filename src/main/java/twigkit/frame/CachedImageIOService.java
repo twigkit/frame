@@ -14,6 +14,7 @@
  */
 package twigkit.frame;
 
+import net.sf.ehcache.event.CacheEventListener;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -26,6 +27,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
 
+import net.sf.ehcache.*;
+
+
 /**
  * @author mr.olafsson
  */
@@ -36,6 +40,10 @@ public class CachedImageIOService extends BasicImageIOService {
 	public static final String WIDTH = "_w";
 	public static final String HEIGHT = "_h";
 	public static final String SERVICES_IMAGES_OFFLINE_PATH = "services.images.offline.path";
+    public static final String CACHE_NAME_PROPERTY = "services.images.cache.name";
+    private String cacheName;
+    private Ehcache cache;
+    private static CacheManager cacheManager;
 
 	private File repository;
 
@@ -44,11 +52,9 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
 	public CachedImageIOService(Properties properties) {
-		this(properties.getProperty(SERVICES_IMAGES_OFFLINE_PATH));
-	}
+        setOfflinePath(properties.getProperty(SERVICES_IMAGES_OFFLINE_PATH));
+        setCacheName(properties.getProperty(CACHE_NAME_PROPERTY));
 
-	public CachedImageIOService(String offlinePath) {
-        setOfflinePath(offlinePath);
 	}
 
     public void setOfflinePath(String offlinePath) {
@@ -61,6 +67,8 @@ public class CachedImageIOService extends BasicImageIOService {
                     logger.info("CachedImageIOService created offline repository: " + repository.getAbsolutePath());
                 } catch (IOException e) {
                     logger.error("Failed to create offline repository", e);
+                    repository = null;
+                    return;
                 }
             }
 
@@ -70,104 +78,189 @@ public class CachedImageIOService extends BasicImageIOService {
         }
     }
 
+    public void setCacheName(String cacheName) {
+        if(cacheName != null & !cacheName.equals("")) {
+            this.cacheName = cacheName;
+            createCacheManager();
+            cache = getOrCreateCache();
+        }
+    }
+
+    public void createCacheManager() {
+        URL url = getClass().getResource("/cache.xml");
+        this.cacheManager = CacheManager.newInstance(url);
+    }
+
+    public Ehcache getOrCreateCache() {
+        if (!cacheManager.cacheExists(cacheName)) {
+            logger.debug("Creating cache from defaults!");
+            cacheManager.addCache(cacheName);
+            Cache cache = (Cache) cacheManager.getEhcache(cacheName);
+            // TODO Seems to have no effect?
+            cache.getCacheConfiguration().setCopyOnRead(true);
+            cache.getCacheConfiguration().setCopyOnWrite(true);
+            if (logger.isTraceEnabled()) {
+//            if (!cache.isStatisticsEnabled()) {
+//                cache.setStatisticsEnabled(true);
+//            }
+                logger.trace("Cache [" + cacheName + "] TimeToIdleSeconds: " + cache.getCacheConfiguration().getTimeToIdleSeconds());
+            }
+            CacheEventListener myListener = new CacheEventListenerImpl();
+            cache.getCacheEventNotificationService().registerListener(myListener);
+            return cache;
+        }
+        else {
+            return cacheManager.getEhcache(cacheName);
+        }
+    }
+
     @Override
     public Image fromURL(final URL url) throws IOException {
         return fromURL(url, true);
     }
 
 	public Image fromURL(final URL url, boolean writeToCache) throws IOException {
-		if (repository != null && repository.exists()) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
-			}
+        Boolean isMissing = false;
+        String key = getKeyFromURLBySize(url,0,0);
+		if (writeToCache && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
+            }
 
-			File file = getFileFromURL(url, 0, 0);
+            File file = new File((String) cache.get(key).getObjectValue());
 
-			if (file.exists()) {
-				if (logger.isTraceEnabled()) {
-					logger.trace("Getting Image [" + file.getName() + "] from cache");
-				}
-				BufferedImage buf = ImageIO.read(file);
-				Image image = new Image(buf);
-				image.setUrl(url);
-				return image;
-			} else {
-				Image image = super.fromURL(url);
-				image.setUrl(url);
-
-                if (writeToCache) {
-                    ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
-
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
-                    }
+            if (file.exists()) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Getting Image [" + file.getName() + "] from cache");
                 }
+                BufferedImage buf = ImageIO.read(file);
+                Image image = new Image(buf);
+                image.setUrl(url);
+                return image;
+            } else {
+                isMissing = true;
+            }
+        }
 
-				return image;
-			}
-		}
+        Image image = super.fromURL(url);
+        image.setUrl(url);
 
-		logger.warn("Failed to cache Image [" + url + "], returning without caching!");
-		return super.fromURL(url);
-	}
+        if(isMissing || (writeToCache && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
 
-	private File getFileFromURL(URL url) {
-		return getFileFromURL(url, 0, 0);
-	}
+            File file = getFileFromURL(url);
+            try {
+                ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
+                cache.put(new Element(key,file.getAbsolutePath()));
 
-	private File getFileFromURL(URL url, int height, int width) {
-		String filePath = getFileNameFromURLBySize(url, height, width);
-		File file = new File(repository, filePath);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
+                }
+            }
+            catch(IOException e) {
+                if (logger.isErrorEnabled()) {
+                    logger.error("Failed to write image file into cache repository {} : {}",file.getAbsolutePath(),e.getStackTrace());
+                }
+            }
+            catch(Exception e) {
+                if (logger.isErrorEnabled()) {
+                    logger.error("Failed to write key-value to cache {} : {}",cache.getName(),e.getStackTrace());
+                }
+            }
+            return image;
+        }
+        return image;
 
-		return file;
-	}
-
-	private String getFileNameFromURLBySize(URL url, int width, int height) {
-		StringBuilder buf = new StringBuilder();
-		buf.append(DigestUtils.md5Hex(url.toString()));
-		if (width > 0) {
-			buf.append(WIDTH);
-			buf.append(width);
-		}
-
-		if (height > 0) {
-			buf.append(HEIGHT);
-			buf.append(height);
-		}
-
-		buf.append(".");
-		buf.append(Image.ContentType.PNG.getSuffix());
-
-		return buf.toString();
 	}
 
 	@Override
 	public Image resize(final Image image, final int newWidthInPixels, final int newHeightInPixels) throws Exception {
-		if (repository != null && repository.exists() && image.hasUrl()) {
-			File file = getFileFromURL(image.getUrl(), newWidthInPixels, newHeightInPixels);
+        Boolean isMissing = false;
+        String key = getKeyFromURLBySize(image.getUrl(), newWidthInPixels, newHeightInPixels);
+        if (image.hasUrl() && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
+            File file = new File((String) cache.get(getKeyFromURLBySize(image.getUrl(), newWidthInPixels, newHeightInPixels)).getObjectValue());
+            if (file.exists()) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Getting resized Image [" + file.getName() + "] from cache");
+                }
+                BufferedImage buf = ImageIO.read(file);
+                Image bufferedImage = new Image(buf);
+                bufferedImage.setUrl(image.getUrl());
+                return bufferedImage;
+            } else {
+                isMissing = true;
+            }
+        }
 
-			if (file.exists()) {
-				if (logger.isTraceEnabled()) {
-					logger.trace("Getting Image [" + file.getName() + "] from cache");
-				}
-				BufferedImage buf = ImageIO.read(file);
-				Image bufferedImage = new Image(buf);
-				bufferedImage.setUrl(image.getUrl());
+        Image resized = super.resize(image, newWidthInPixels, newHeightInPixels);
 
-				return bufferedImage;
-			} else {
-				Image resized = super.resize(image, newWidthInPixels, newHeightInPixels);
-				ImageIO.write(resized.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
+        if (isMissing || (image.hasUrl() && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
+            File file = getFileFromURL(image.getUrl(), newWidthInPixels, newHeightInPixels);
+            try {
+                ImageIO.write(resized.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
+                cache.put(new Element(key, file.getAbsolutePath()));
 
-				if (logger.isTraceEnabled()) {
-					logger.trace("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
-				}
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
+                }
+            }
+            catch (IOException e) {
+                if (logger.isErrorEnabled()) {
+                    logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e.getStackTrace());
+                }
+            }
+            catch(Exception e) {
+                if (logger.isErrorEnabled()) {
+                    logger.error("Failed to write key-value to cache {} : {}",cache.getName(),e.getStackTrace());
+                }
+            }
+        }
+        return resized;
+    }
 
-                return resized;
-			}
-		}
 
-		logger.warn("Failed to cache Image [" + image.getUrl() + "], returning without caching!");
-		return super.resize(image, newWidthInPixels, newHeightInPixels);
-	}
+    private File getFileFromURL(URL url) {
+        return getFileFromURL(url, 0, 0);
+    }
+
+    private File getFileFromURL(URL url, int width, int height) {
+        String filePath = getFileNameFromURLBySize(url, width, height);
+        File file = new File(repository, filePath);
+
+        return file;
+    }
+
+    private String getKeyFromURLBySize(URL url, int width, int height) {
+        if(url == null) {
+            return null;
+        }
+        return getFileFromURL(url,width,height).getAbsolutePath();
+    }
+
+    private String getFileNameFromURLBySize(URL url, int width, int height) {
+        StringBuilder buf = new StringBuilder();
+        buf.append(DigestUtils.md5Hex(url.toString()));
+        if (width > 0) {
+            buf.append(WIDTH);
+            buf.append(width);
+        }
+
+        if (height > 0) {
+            buf.append(HEIGHT);
+            buf.append(height);
+        }
+
+        buf.append(".");
+        buf.append(Image.ContentType.PNG.getSuffix());
+
+        return buf.toString();
+    }
+
+    public static boolean deleteFromRepository(String path){
+        File file = new File(path);
+        if(file.exists()){
+            file.delete();
+            return true;
+        }
+        return false;
+    }
 }

@@ -39,7 +39,8 @@ public class CachedImageServiceTest {
 	@Before
 	public void init() {
 		Properties properties = new Properties();
-		properties.setProperty("services.images.offline.path", "/tmp/twigkit/offline/images/");
+		properties.setProperty("services.images.cache.name", "frame-cache");
+		properties.setProperty("services.images.offline.path", "/tmp/twigkit/offline");
 		service = new CachedImageIOService(properties);
 	}
 
