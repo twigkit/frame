@@ -3,12 +3,12 @@ package twigkit.frame;
 import net.sf.ehcache.CacheException;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
-import net.sf.ehcache.event.*;
+import net.sf.ehcache.event.CacheEventListener;
 
 /**
- * Created by a-flammarion on 19/05/2016.
+ * @author a-flammarion
  */
-public class CacheEventListenerImpl implements net.sf.ehcache.event.CacheEventListener {
+public class CacheEventListenerImpl implements CacheEventListener {
     public void notifyElementRemoved(Ehcache ehcache, Element element) throws CacheException {
     }
 

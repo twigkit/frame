@@ -2,15 +2,14 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 package twigkit.frame;
 
@@ -35,27 +34,27 @@ import net.sf.ehcache.*;
  */
 public class CachedImageIOService extends BasicImageIOService {
 
-	private static final Logger logger = LoggerFactory.getLogger(CachedImageIOService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CachedImageIOService.class);
 
-	public static final String WIDTH = "_w";
-	public static final String HEIGHT = "_h";
-	public static final String SERVICES_IMAGES_OFFLINE_PATH = "services.images.offline.path";
+    public static final String WIDTH = "_w";
+    public static final String HEIGHT = "_h";
+    public static final String SERVICES_IMAGES_OFFLINE_PATH = "services.images.offline.path";
     public static final String CACHE_NAME_PROPERTY = "services.images.cache.name";
     private String cacheName;
     private Ehcache cache;
     private static CacheManager cacheManager;
 
-	private File repository;
+    private File repository;
 
     public CachedImageIOService() {
         // Make sure you call setOfflinePath();
     }
 
-	public CachedImageIOService(Properties properties) {
+    public CachedImageIOService(Properties properties) {
         setOfflinePath(properties.getProperty(SERVICES_IMAGES_OFFLINE_PATH));
         setCacheName(properties.getProperty(CACHE_NAME_PROPERTY));
 
-	}
+    }
 
     public void setOfflinePath(String offlinePath) {
         if (offlinePath != null && offlinePath.length() > 0) {
@@ -79,7 +78,7 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
     public void setCacheName(String cacheName) {
-        if(cacheName != null & !cacheName.equals("")) {
+        if (cacheName != null & !cacheName.equals("")) {
             this.cacheName = cacheName;
             createCacheManager();
             cache = getOrCreateCache();
@@ -108,8 +107,7 @@ public class CachedImageIOService extends BasicImageIOService {
             CacheEventListener myListener = new CacheEventListenerImpl();
             cache.getCacheEventNotificationService().registerListener(myListener);
             return cache;
-        }
-        else {
+        } else {
             return cacheManager.getEhcache(cacheName);
         }
     }
@@ -119,10 +117,10 @@ public class CachedImageIOService extends BasicImageIOService {
         return fromURL(url, true);
     }
 
-	public Image fromURL(final URL url, boolean writeToCache) throws IOException {
+    public Image fromURL(final URL url, boolean writeToCache) throws IOException {
         Boolean isMissing = false;
-        String key = getKeyFromURLBySize(url,0,0);
-		if (writeToCache && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
+        String key = getKeyFromURLBySize(url, 0, 0);
+        if (writeToCache && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
             }
@@ -145,35 +143,33 @@ public class CachedImageIOService extends BasicImageIOService {
         Image image = super.fromURL(url);
         image.setUrl(url);
 
-        if(isMissing || (writeToCache && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
+        if (isMissing || (writeToCache && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
 
             File file = getFileFromURL(url);
             try {
                 ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
-                cache.put(new Element(key,file.getAbsolutePath()));
+                cache.put(new Element(key, file.getAbsolutePath()));
 
                 if (logger.isTraceEnabled()) {
                     logger.trace("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
                 }
-            }
-            catch(IOException e) {
+            } catch (IOException e) {
                 if (logger.isErrorEnabled()) {
-                    logger.error("Failed to write image file into cache repository {} : {}",file.getAbsolutePath(),e.getStackTrace());
+                    logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e.getStackTrace());
                 }
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 if (logger.isErrorEnabled()) {
-                    logger.error("Failed to write key-value to cache {} : {}",cache.getName(),e.getStackTrace());
+                    logger.error("Failed to write key-value to cache {} : {}", cache.getName(), e.getStackTrace());
                 }
             }
             return image;
         }
         return image;
 
-	}
+    }
 
-	@Override
-	public Image resize(final Image image, final int newWidthInPixels, final int newHeightInPixels) throws Exception {
+    @Override
+    public Image resize(final Image image, final int newWidthInPixels, final int newHeightInPixels) throws Exception {
         Boolean isMissing = false;
         String key = getKeyFromURLBySize(image.getUrl(), newWidthInPixels, newHeightInPixels);
         if (image.hasUrl() && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
@@ -202,15 +198,13 @@ public class CachedImageIOService extends BasicImageIOService {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 if (logger.isErrorEnabled()) {
                     logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e.getStackTrace());
                 }
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 if (logger.isErrorEnabled()) {
-                    logger.error("Failed to write key-value to cache {} : {}",cache.getName(),e.getStackTrace());
+                    logger.error("Failed to write key-value to cache {} : {}", cache.getName(), e.getStackTrace());
                 }
             }
         }
@@ -230,10 +224,10 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
     private String getKeyFromURLBySize(URL url, int width, int height) {
-        if(url == null) {
+        if (url == null) {
             return null;
         }
-        return getFileFromURL(url,width,height).getAbsolutePath();
+        return getFileFromURL(url, width, height).getAbsolutePath();
     }
 
     private String getFileNameFromURLBySize(URL url, int width, int height) {
@@ -255,9 +249,9 @@ public class CachedImageIOService extends BasicImageIOService {
         return buf.toString();
     }
 
-    public static boolean deleteFromRepository(String path){
+    public static boolean deleteFromRepository(String path) {
         File file = new File(path);
-        if(file.exists()){
+        if (file.exists()) {
             file.delete();
             return true;
         }
