@@ -23,7 +23,9 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -75,7 +77,11 @@ public class CachedImageIOService extends BasicImageIOService {
         return fromURL(url, true);
     }
 
-	public Image fromURL(final URL url, boolean writeToCache) throws IOException {
+    public Image fromURL(final URL url, boolean writeToCache) throws IOException {
+        return fromURL(url, writeToCache, null);
+    }
+
+	public Image fromURL(final URL url, boolean writeToCache, Map<String, String> headers) throws IOException {
 		if (repository != null && repository.exists()) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
@@ -92,8 +98,18 @@ public class CachedImageIOService extends BasicImageIOService {
 				image.setUrl(url);
 				return image;
 			} else {
-				Image image = super.fromURL(url);
-				image.setUrl(url);
+                Image image = null;
+                if (headers != null && headers.size() > 0) {
+                    HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
+                    for(Map.Entry<String, String> header : headers.entrySet()) {
+                        urlConnection.setRequestProperty(header.getKey(), header.getValue());
+                    }
+                    urlConnection.setUseCaches(false);
+                    image = super.from(urlConnection.getInputStream());
+                } else {
+                    image = super.fromURL(url);
+                }
+                image.setUrl(url);
 
                 if (writeToCache) {
                     ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
@@ -103,7 +119,7 @@ public class CachedImageIOService extends BasicImageIOService {
                     }
                 }
 
-				return image;
+                return image;
 			}
 		}
 
