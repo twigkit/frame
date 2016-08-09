@@ -117,10 +117,10 @@ public class CachedImageIOService extends BasicImageIOService {
         return fromURL(url, true);
     }
 
-    public Image fromURL(final URL url, boolean writeToCache) throws IOException {
-        Boolean isMissing = false;
+    public Image fromURL(final URL url, boolean useCache) throws IOException {
+        boolean isMissing = false;
         String key = getKeyFromURLBySize(url, 0, 0);
-        if (writeToCache && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
+        if (useCache && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
             }
@@ -143,7 +143,7 @@ public class CachedImageIOService extends BasicImageIOService {
         Image image = super.fromURL(url);
         image.setUrl(url);
 
-        if (isMissing || (writeToCache && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
+        if (isMissing || (useCache && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
 
             File file = getFileFromURL(url);
             try {
