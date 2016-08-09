@@ -2,14 +2,15 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 package twigkit.frame;
 
@@ -23,7 +24,9 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Map;
 import java.util.Properties;
 
 import net.sf.ehcache.*;
@@ -118,7 +121,12 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
     public Image fromURL(final URL url, boolean useCache) throws IOException {
-        boolean isMissing = false;
+        return fromURL(url, useCache, null);
+    }
+
+	public Image fromURL(final URL url, boolean useCache, Map<String, String> headers) throws IOException {
+        Boolean isMissing = false;
+        Image image;
         String key = getKeyFromURLBySize(url, 0, 0);
         if (useCache && repository != null && repository.exists() && cache != null && cache.isKeyInCache(key)) {
             if (logger.isTraceEnabled()) {
@@ -132,7 +140,7 @@ public class CachedImageIOService extends BasicImageIOService {
                     logger.trace("Getting Image [" + file.getName() + "] from cache");
                 }
                 BufferedImage buf = ImageIO.read(file);
-                Image image = new Image(buf);
+                image = new Image(buf);
                 image.setUrl(url);
                 return image;
             } else {
@@ -140,7 +148,16 @@ public class CachedImageIOService extends BasicImageIOService {
             }
         }
 
-        Image image = super.fromURL(url);
+        if (headers != null && headers.size() > 0) {
+            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                urlConnection.setRequestProperty(header.getKey(), header.getValue());
+            }
+            urlConnection.setUseCaches(false);
+            image = super.from(urlConnection.getInputStream());
+        } else {
+            image = super.fromURL(url);
+        }
         image.setUrl(url);
 
         if (isMissing || (useCache && repository != null && repository.exists() && cache != null && (!cache.isKeyInCache(key)))) {
@@ -231,8 +248,20 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
     private String getFileNameFromURLBySize(URL url, int width, int height) {
+        return getFileNameFromURLBySize(url,null,width,height);
+    }
+    
+    private String getFileNameFromURLBySize(URL url, Map<String,String> headers, int width, int height) {
         StringBuilder buf = new StringBuilder();
-        buf.append(DigestUtils.md5Hex(url.toString()));
+        String s = url.toString();
+
+        //Use the headers to generate
+        if(headers != null && !headers.isEmpty()) {
+            for (Map.Entry e: headers.entrySet()) {
+                s = s.concat((String)e.getKey()).concat((String)e.getValue());
+            }
+        }
+        buf.append(DigestUtils.md5Hex(s));
         if (width > 0) {
             buf.append(WIDTH);
             buf.append(width);
