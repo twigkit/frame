@@ -100,8 +100,8 @@ public class CachedImageIOService extends BasicImageIOService {
 			} else {
                 Image image = null;
                 if (headers != null && headers.size() > 0) {
-                    HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
-                    for(Map.Entry<String, String> header : headers.entrySet()) {
+                    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                    for (Map.Entry<String, String> header : headers.entrySet()) {
                         urlConnection.setRequestProperty(header.getKey(), header.getValue());
                     }
                     urlConnection.setUseCaches(false);
