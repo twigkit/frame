@@ -15,6 +15,7 @@ package twigkit.frame;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
@@ -23,6 +24,9 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -31,7 +35,7 @@ import java.util.Properties;
 public class CachedImageServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(CachedImageServiceTest.class);
-
+    private CachedImageIOService cachedService;
     private BasicImageService service;
     private TemporaryFolder folder = new TemporaryFolder();
 
@@ -41,6 +45,7 @@ public class CachedImageServiceTest {
         properties.setProperty("services.images.cache.name", "frame-cache");
         properties.setProperty("services.images.offline.path", "/tmp/twigkit/offline");
         service = new CachedImageIOService(properties);
+        cachedService = new CachedImageIOService(properties);
     }
 
     @Test
@@ -112,6 +117,20 @@ public class CachedImageServiceTest {
         Assert.assertTrue(stream.size() > 50000 && stream.size() < 60000);
     }
 
+    @Ignore
+    @Test
+    public void testCaching() throws Exception {
+        URL url = new URL("http://dev.twigkit.net/twigkit/services/images/resize/?cacheOriginal=false&url=http%3A%2F%2Fdesigningthesearchexperience.com%2Fimages%2Fcover%2Fdesigning-the-search-experience_large.jpg");
+        Map<String,String> headers = new HashMap<String,String>(1);
+        headers.put("COOKIE","_ga=GA1.2.1472257993.1470653684; SPRING_SECURITY_REMEMBER_ME_COOKIE=YWRyaWVuQHR3aWdraXQuY29tOjE0NzE5NTM0NDc5NTg6Mjk5M2U5ZDc1ZWQ0YjRiYjhlMzRlN2UwZjI1M2ZmNjM; JSESSIONID=DCBA4E64852DDFE819065BEB3AB61181");
+        Image image = cachedService.fromURL(url,true,headers,0,200);
+        image = cachedService.fromURL(url,true,headers,0,400);
+        long time = System.currentTimeMillis();
+        while(System.currentTimeMillis() < time + 6000L) {}
+        image = cachedService.fromURL(url,true,headers,0,200);
+
+
+    }
     private Image getImage() {
         return getImage("sample.jpg");
     }

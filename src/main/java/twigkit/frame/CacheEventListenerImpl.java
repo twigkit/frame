@@ -10,6 +10,7 @@ import net.sf.ehcache.event.CacheEventListener;
  */
 public class CacheEventListenerImpl implements CacheEventListener {
     public void notifyElementRemoved(Ehcache ehcache, Element element) throws CacheException {
+        CachedImageIOService.deleteFromRepository((String)element.getObjectKey());
     }
 
     public void notifyElementPut(Ehcache ehcache, Element element) throws CacheException {
@@ -25,7 +26,7 @@ public class CacheEventListenerImpl implements CacheEventListener {
     }
 
     public void notifyElementEvicted(Ehcache ehcache, Element element) {
-
+        CachedImageIOService.deleteFromRepository((String)element.getObjectKey());
     }
 
     public void notifyRemoveAll(Ehcache ehcache) {

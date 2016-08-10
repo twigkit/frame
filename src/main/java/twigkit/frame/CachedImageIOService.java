@@ -127,22 +127,22 @@ public class CachedImageIOService extends BasicImageIOService {
         return fromURL(url, useCache, headers, 0, 0);
     }
 
+    //This method now allows you to retrieve an image, from the cache if it exists, or from source and resize it
     public Image fromURL(final URL url, final boolean useCache, final Map<String, String> headers, final int newWidthInPixels, final int newHeightInPixels) throws IOException {
         boolean isMissing = true;
         Image image;
 
         if (useCache && repository != null && repository.exists() && cache != null) {
-
             if (newHeightInPixels > 0 || newHeightInPixels > 0) {
 
                 //Retrieve the image from cache using given size
                 String key = getKeyFromURLBySize(url, headers, newWidthInPixels, newHeightInPixels);
-                if (cache.isKeyInCache(key)) {
+                if (cache.get(key) != null) {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Getting resized image from cache [" + repository.getAbsolutePath() + "]");
                     }
 
-                    File file = new File((String) cache.get(key).getObjectValue());
+                    File file = (File) cache.get(key).getObjectValue();
 
                     if (file.exists()) {
                         if (logger.isTraceEnabled()) {
@@ -158,11 +158,11 @@ public class CachedImageIOService extends BasicImageIOService {
 
                 //Retrieve the image from cache using original size
                 key = getKeyFromURLBySize(url, headers, 0, 0);
-                if (cache.isKeyInCache(key)) {
+                if (cache.get(key) != null) {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Getting original image from cache [" + repository.getAbsolutePath() + "]");
                     }
-                    File file = new File((String) cache.get(key).getObjectValue());
+                    File file = (File) cache.get(key).getObjectValue();
 
                     if (file.exists()) {
                         if (logger.isTraceEnabled()) {
@@ -174,30 +174,21 @@ public class CachedImageIOService extends BasicImageIOService {
                         try {
                             //Now try to resize the image
                             image = super.resize(image, newWidthInPixels, newHeightInPixels);
-                            String resizedKey = getKeyFromURLBySize(url, headers, newWidthInPixels, newHeightInPixels);
+//                            String resizedKey = getKeyFromURLBySize(url, headers, newWidthInPixels, newHeightInPixels);
                             File resizedFile = getFileFromURL(url, headers, newWidthInPixels, newHeightInPixels);
-                            try {
-                                ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), resizedFile);
-                                cache.put(new Element(resizedKey, resizedFile.getAbsolutePath()));
-                                if (logger.isTraceEnabled()) {
-                                    logger.trace("Wrote resized image [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
-                                }
-                            } catch (IOException e) {
-                                if (logger.isErrorEnabled()) {
-                                    logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e);
-                                }
-                            } catch (Exception e) {
-                                if (logger.isErrorEnabled()) {
-                                    logger.error("Failed to write key-value to cache {} : {}", cache.getName(), e);
-                                }
+                            writeToCache(image, resizedFile);
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("Wrote resized image [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
                             }
-                            //In all cases, return resized image to caller
-                            finally {
-                                return image;
-                            }
+
+
                         } catch (Exception e) {
                             logger.error("Caught an exception whilst resizing image: {}", e);
                             //return original image anyway
+                            return image;
+                        }
+                        //In all cases, return resized image to caller
+                        finally {
                             return image;
                         }
                     }
@@ -207,27 +198,18 @@ public class CachedImageIOService extends BasicImageIOService {
                 image = getOriginalImage(url, headers);
 
                 //Try to cache the original image
-                File file = getFileFromURL(url, headers, newWidthInPixels, newHeightInPixels);
-                writeToCache(image, headers, file);
+                File file = getFileFromURL(url, headers, 0, 0);
+                writeToCache(image, file);
                 try {
                     //Now try to resize the image
                     image = super.resize(image, newWidthInPixels, newHeightInPixels);
                     String resizedKey = getKeyFromURLBySize(url, headers, newWidthInPixels, newHeightInPixels);
                     File resizedFile = getFileFromURL(url, headers, newWidthInPixels, newHeightInPixels);
-                    try {
-                        ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), resizedFile);
-                        cache.put(new Element(resizedKey, resizedFile.getAbsolutePath()));
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Wrote resized image [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
-                        }
-                    } catch (IOException e) {
-                        if (logger.isErrorEnabled()) {
-                            logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e);
-                        }
-                    } catch (Exception e) {
-                        if (logger.isErrorEnabled()) {
-                            logger.error("Failed to write key-value to cache {} : {}", cache.getName(), e);
-                        }
+                    writeToCache(image, resizedFile);
+//                        ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), resizedFile);
+//                        cache.put(new Element(resizedKey, resizedFile.getAbsolutePath()));
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Wrote resized image [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
                     }
                 } catch (Exception e) {
                     logger.error("Caught an exception whilst resizing image: {}", e);
@@ -240,11 +222,11 @@ public class CachedImageIOService extends BasicImageIOService {
 
             //No need to resize. Try to get from cache otherwise get it from the source and cache it
             String key = getKeyFromURLBySize(url, headers, 0, 0);
-            if (cache.isKeyInCache(key)) {
+            if (cache.get(key) != null) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("Getting original image from cache [" + repository.getAbsolutePath() + "]");
                 }
-                File file = new File((String) cache.get(key).getObjectValue());
+                File file = (File) cache.get(key).getObjectValue();
 
                 if (file.exists()) {
                     if (logger.isTraceEnabled()) {
@@ -261,11 +243,11 @@ public class CachedImageIOService extends BasicImageIOService {
 
             //Try to cache the original image
             File file = getFileFromURL(url, headers, 0, 0);
-            writeToCache(image, headers, file);
+            writeToCache(image, file);
             return image;
         } else {
             image = getOriginalImage(url, headers);
-            if(newWidthInPixels > 0 || newHeightInPixels > 0) {
+            if (newWidthInPixels > 0 || newHeightInPixels > 0) {
                 try {
                     image = super.resize(image, newWidthInPixels, newHeightInPixels);
                 } catch (Exception e) {
@@ -278,10 +260,10 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
 
-    private void writeToCache(Image image, Map<String, String> headers, File file) {
+    private void writeToCache(Image image, File file) {
         try {
             ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
-            cache.put(new Element(getFileFromURL(image.getUrl(),headers), file.getAbsolutePath()));
+            cache.put(new Element(file.getAbsolutePath(), file));
         } catch (IOException e) {
             if (logger.isErrorEnabled()) {
                 logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e);
@@ -412,6 +394,7 @@ public class CachedImageIOService extends BasicImageIOService {
         return buf.toString();
     }
 
+    //This method is used to delete the file from the filesystem cache when it is evicted or expired from ehcache.
     public static boolean deleteFromRepository(String path) {
         File file = new File(path);
         if (file.exists()) {
