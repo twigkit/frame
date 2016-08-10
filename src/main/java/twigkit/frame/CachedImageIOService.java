@@ -2,18 +2,18 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 package twigkit.frame;
 
+import net.sf.ehcache.event.CacheEventListener;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -28,30 +28,35 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
 
+import net.sf.ehcache.*;
+
+
 /**
  * @author mr.olafsson
  */
 public class CachedImageIOService extends BasicImageIOService {
 
-	private static final Logger logger = LoggerFactory.getLogger(CachedImageIOService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CachedImageIOService.class);
 
-	public static final String WIDTH = "_w";
-	public static final String HEIGHT = "_h";
-	public static final String SERVICES_IMAGES_OFFLINE_PATH = "services.images.offline.path";
+    public static final String WIDTH = "_w";
+    public static final String HEIGHT = "_h";
+    public static final String SERVICES_IMAGES_OFFLINE_PATH = "services.images.offline.path";
+    public static final String CACHE_NAME_PROPERTY = "services.images.cache.name";
+    private String cacheName;
+    private Ehcache cache;
+    private static CacheManager cacheManager;
 
-	private File repository;
+    private File repository;
 
     public CachedImageIOService() {
-        // Make sure you call setOfflinePath();
+        // Make sure you call setOfflinePath() and setCacheName();
     }
 
-	public CachedImageIOService(Properties properties) {
-		this(properties.getProperty(SERVICES_IMAGES_OFFLINE_PATH));
-	}
+    public CachedImageIOService(Properties properties) {
+        setOfflinePath(properties.getProperty(SERVICES_IMAGES_OFFLINE_PATH));
+        setCacheName(properties.getProperty(CACHE_NAME_PROPERTY));
 
-	public CachedImageIOService(String offlinePath) {
-        setOfflinePath(offlinePath);
-	}
+    }
 
     public void setOfflinePath(String offlinePath) {
         if (offlinePath != null && offlinePath.length() > 0) {
@@ -63,6 +68,8 @@ public class CachedImageIOService extends BasicImageIOService {
                     logger.info("CachedImageIOService created offline repository: " + repository.getAbsolutePath());
                 } catch (IOException e) {
                     logger.error("Failed to create offline repository", e);
+                    repository = null;
+                    return;
                 }
             }
 
@@ -72,118 +79,276 @@ public class CachedImageIOService extends BasicImageIOService {
         }
     }
 
+    public void setCacheName(String cacheName) {
+        if (cacheName != null & !cacheName.equals("")) {
+            this.cacheName = cacheName;
+            createCacheManager();
+            cache = getOrCreateCache();
+        }
+    }
+
+    public void createCacheManager() {
+        URL url = getClass().getResource("/cache.xml");
+        this.cacheManager = CacheManager.newInstance(url);
+    }
+
+    public Ehcache getOrCreateCache() {
+        if (!cacheManager.cacheExists(cacheName)) {
+            logger.debug("Creating cache from defaults!");
+            cacheManager.addCache(cacheName);
+            Cache cache = (Cache) cacheManager.getEhcache(cacheName);
+            // TODO Seems to have no effect?
+            cache.getCacheConfiguration().setCopyOnRead(true);
+            cache.getCacheConfiguration().setCopyOnWrite(true);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Cache [" + cacheName + "] TimeToIdleSeconds: " + cache.getCacheConfiguration().getTimeToIdleSeconds());
+            }
+            CacheEventListener myListener = new CacheEventListenerImpl();
+            cache.getCacheEventNotificationService().registerListener(myListener);
+            return cache;
+        } else {
+            return cacheManager.getEhcache(cacheName);
+        }
+    }
+
     @Override
     public Image fromURL(final URL url) throws IOException {
         return fromURL(url, true);
     }
 
-    public Image fromURL(final URL url, boolean writeToCache) throws IOException {
-        return fromURL(url, writeToCache, null);
+    public Image fromURL(final URL url, boolean useCache) throws IOException {
+        return fromURL(url, useCache, null);
     }
 
-	public Image fromURL(final URL url, boolean writeToCache, Map<String, String> headers) throws IOException {
-		if (repository != null && repository.exists()) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Getting Image from cache [" + repository.getAbsolutePath() + "]");
-			}
+    public Image fromURL(final URL url, final boolean useCache, final Map<String, String> headers) throws IOException {
+        return fromURL(url, useCache, headers, 0, 0);
+    }
 
-			File file = getFileFromURL(url, 0, 0);
+    //This method now allows you to retrieve an image, from the cache if it exists, or from source and resize it
+    public Image fromURL(final URL url, final boolean useCache, final Map<String, String> headers, final int newWidthInPixels, final int newHeightInPixels) throws IOException {
+        Image image;
 
-			if (file.exists()) {
-				if (logger.isTraceEnabled()) {
-					logger.trace("Getting Image [" + file.getName() + "] from cache");
-				}
-				BufferedImage buf = ImageIO.read(file);
-				Image image = new Image(buf);
-				image.setUrl(url);
-				return image;
-			} else {
-                Image image = null;
-                if (headers != null && headers.size() > 0) {
-                    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                    for (Map.Entry<String, String> header : headers.entrySet()) {
-                        urlConnection.setRequestProperty(header.getKey(), header.getValue());
-                    }
-                    urlConnection.setUseCaches(false);
-                    image = super.from(urlConnection.getInputStream());
-                } else {
-                    image = super.fromURL(url);
-                }
-                image.setUrl(url);
+        if (useCache && repository != null && repository.exists() && cache != null) {
+            if (newHeightInPixels > 0 || newHeightInPixels > 0) {
 
-                if (writeToCache) {
-                    ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
-
+                //Retrieve the image from cache using given size
+                String key = getKeyFromURLBySize(url, headers, newWidthInPixels, newHeightInPixels);
+                if (cache.get(key) != null) {
                     if (logger.isTraceEnabled()) {
-                        logger.trace("Wrote Image (original) [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
+                        logger.trace("Getting resized image from cache [" + repository.getAbsolutePath() + "]");
+                    }
+
+                    File file = (File) cache.get(key).getObjectValue();
+
+                    if (file.exists()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Found resized image [" + file.getName() + "] from cache");
+                        }
+                        BufferedImage buf = ImageIO.read(file);
+                        image = new Image(buf);
+                        image.setUrl(url);
+                        return image;
+                    }
+                    logger.trace("Failed to retrieve resized image from cache");
+                }
+
+                //Retrieve the image from cache using original size
+                key = getKeyFromURLBySize(url, headers, 0, 0);
+                if (cache.get(key) != null) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Getting original image from cache [" + repository.getAbsolutePath() + "]");
+                    }
+                    File file = (File) cache.get(key).getObjectValue();
+
+                    if (file.exists()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Found original image [" + file.getName() + "] from cache");
+                        }
+                        BufferedImage buf = ImageIO.read(file);
+                        image = new Image(buf);
+                        image.setUrl(url);
+                        try {
+                            //Now try to resize the image
+                            image = super.resize(image, newWidthInPixels, newHeightInPixels);
+                            File resizedFile = getFileFromURL(url, headers, newWidthInPixels, newHeightInPixels);
+                            writeToCache(image, resizedFile);
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("Wrote resized image [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
+                            }
+
+
+                        } catch (Exception e) {
+                            logger.error("Caught an exception whilst resizing image: {}", e);
+                            //return original image anyway
+                            return image;
+                        }
+                        //In all cases, return resized image to caller
+                        finally {
+                            return image;
+                        }
                     }
                 }
 
-                return image;
-			}
-		}
+                //Key wasn't in cache or file no longer exists on disk. Need to go and retrieve original file
+                image = getOriginalImage(url, headers);
 
-		logger.warn("Failed to cache Image [" + url + "], returning without caching!");
-		return super.fromURL(url);
-	}
+                //Try to cache the original image
+                File file = getFileFromURL(url, headers, 0, 0);
+                writeToCache(image, file);
+                try {
+                    //Now try to resize the image
+                    image = super.resize(image, newWidthInPixels, newHeightInPixels);
+                    File resizedFile = getFileFromURL(url, headers, newWidthInPixels, newHeightInPixels);
+                    writeToCache(image, resizedFile);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Wrote resized image [" + file.getName() + ", " + image.getWidth() + "px by " + image.getHeight() + "px] to cache");
+                    }
+                } catch (Exception e) {
+                    logger.error("Caught an exception whilst resizing image: {}", e);
+                } finally {
+                    //return original or resized image anyway
+                    return image;
+                }
 
-	private File getFileFromURL(URL url) {
-		return getFileFromURL(url, 0, 0);
-	}
+            }
 
-	private File getFileFromURL(URL url, int height, int width) {
-		String filePath = getFileNameFromURLBySize(url, height, width);
-		File file = new File(repository, filePath);
+            //No need to resize. Try to get from cache otherwise get it from the source and cache it
+            String key = getKeyFromURLBySize(url, headers, 0, 0);
+            if (cache.get(key) != null) {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Getting original image from cache [" + repository.getAbsolutePath() + "]");
+                }
+                File file = (File) cache.get(key).getObjectValue();
 
-		return file;
-	}
+                if (file.exists()) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Found original image [" + file.getName() + "] from cache");
+                    }
+                    BufferedImage buf = ImageIO.read(file);
+                    image = new Image(buf);
+                    image.setUrl(url);
+                    return image;
+                }
+            }
+            //Key wasn't in cache or file no longer exists on disk. Need to go and retrieve original file
+            image = getOriginalImage(url, headers);
 
-	private String getFileNameFromURLBySize(URL url, int width, int height) {
-		StringBuilder buf = new StringBuilder();
-		buf.append(DigestUtils.md5Hex(url.toString()));
-		if (width > 0) {
-			buf.append(WIDTH);
-			buf.append(width);
-		}
+            //Try to cache the original image
+            File file = getFileFromURL(url, headers, 0, 0);
+            writeToCache(image, file);
+            return image;
+        } else {
+            image = getOriginalImage(url, headers);
+            if (newWidthInPixels > 0 || newHeightInPixels > 0) {
+                try {
+                    image = super.resize(image, newWidthInPixels, newHeightInPixels);
+                } catch (Exception e) {
+                    logger.error("Caught an exception whilst resizing image: {}", e);
+                }
+            }
+            //return original or resized image anyway
+            return image;
+        }
+    }
 
-		if (height > 0) {
-			buf.append(HEIGHT);
-			buf.append(height);
-		}
 
-		buf.append(".");
-		buf.append(Image.ContentType.PNG.getSuffix());
+    private void writeToCache(Image image, File file) {
+        try {
+            ImageIO.write(image.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
+            cache.put(new Element(file.getAbsolutePath(), file));
+        } catch (IOException e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Failed to write image file into cache repository {} : {}", file.getAbsolutePath(), e);
+            }
+        } catch (Exception e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Failed to write key-value to cache {} : {}", cache.getName(), e);
+            }
+        }
+    }
 
-		return buf.toString();
-	}
+    private Image getOriginalImage(URL url, Map<String, String> headers) throws java.io.IOException {
+        Image image;
+        if (headers != null && headers.size() > 0) {
+            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                urlConnection.setRequestProperty(header.getKey(), header.getValue());
+            }
+            urlConnection.setUseCaches(false);
+            image = super.from(urlConnection.getInputStream());
+        } else {
+            image = super.fromURL(url);
+        }
+        image.setUrl(url);
+        return image;
+    }
 
-	@Override
-	public Image resize(final Image image, final int newWidthInPixels, final int newHeightInPixels) throws Exception {
-		if (repository != null && repository.exists() && image.hasUrl()) {
-			File file = getFileFromURL(image.getUrl(), newWidthInPixels, newHeightInPixels);
+    private File getFileFromURL(URL url) {
+        return getFileFromURL(url, null, 0, 0);
+    }
 
-			if (file.exists()) {
-				if (logger.isTraceEnabled()) {
-					logger.trace("Getting Image [" + file.getName() + "] from cache");
-				}
-				BufferedImage buf = ImageIO.read(file);
-				Image bufferedImage = new Image(buf);
-				bufferedImage.setUrl(image.getUrl());
+    private File getFileFromURL(URL url, Map<String, String> headers) {
+        return getFileFromURL(url, headers, 0, 0);
+    }
 
-				return bufferedImage;
-			} else {
-				Image resized = super.resize(image, newWidthInPixels, newHeightInPixels);
-				ImageIO.write(resized.getBufferedImage(), Image.ContentType.PNG.getSuffix(), file);
+    private File getFileFromURL(URL url, int width, int height) {
+        return getFileFromURL(url, null, width, height);
+    }
 
-				if (logger.isTraceEnabled()) {
-					logger.trace("Wrote Image [" + file.getName() + ", " + resized.getWidth() + "px by " + resized.getHeight() + "px] to cache");
-				}
+    private File getFileFromURL(URL url, Map<String, String> headers, int width, int height) {
+        String filePath = getFileNameFromURLBySize(url, headers, width, height);
+        return new File(repository, filePath);
+    }
 
-                return resized;
-			}
-		}
+    private String getKeyFromURLBySize(URL url, int width, int height) {
+        return getKeyFromURLBySize(url, null, width, height);
+    }
 
-		logger.warn("Failed to cache Image [" + image.getUrl() + "], returning without caching!");
-		return super.resize(image, newWidthInPixels, newHeightInPixels);
-	}
+    private String getKeyFromURLBySize(URL url, Map<String, String> headers, int width, int height) {
+        if (url == null) {
+            return null;
+        }
+        return getFileFromURL(url, headers, width, height).getAbsolutePath();
+    }
+
+    private String getFileNameFromURLBySize(URL url, int width, int height) {
+        return getFileNameFromURLBySize(url, null, width, height);
+    }
+
+    private String getFileNameFromURLBySize(URL url, Map<String, String> headers, int width, int height) {
+        StringBuilder buf = new StringBuilder();
+        String s = url.toString();
+
+        //Use the headers to generate
+        if (headers != null && !headers.isEmpty()) {
+            for (Map.Entry e : headers.entrySet()) {
+                s = s.concat((String) e.getKey()).concat((String) e.getValue());
+            }
+        }
+        buf.append(DigestUtils.md5Hex(s));
+        if (width > 0) {
+            buf.append(WIDTH);
+            buf.append(width);
+        }
+
+        if (height > 0) {
+            buf.append(HEIGHT);
+            buf.append(height);
+        }
+
+        buf.append(".");
+        buf.append(Image.ContentType.PNG.getSuffix());
+
+        return buf.toString();
+    }
+
+    //This method is used to delete the file from the filesystem cache when it is evicted or expired from ehcache.
+    public static boolean deleteFromRepository(String path) {
+        File file = new File(path);
+        if (file.exists()) {
+            file.delete();
+            return true;
+        }
+        return false;
+    }
 }
