@@ -129,7 +129,7 @@ public class CachedImageIOService extends BasicImageIOService {
         Image image;
 
         if (useCache && repository != null && repository.exists() && cache != null) {
-            if (newHeightInPixels > 0 || newHeightInPixels > 0) {
+            if (newWidthInPixels > 0 || newHeightInPixels > 0) {
 
                 //Retrieve the image from cache using given size
                 String key = getKeyFromURLBySize(url, headers, newWidthInPixels, newHeightInPixels);
