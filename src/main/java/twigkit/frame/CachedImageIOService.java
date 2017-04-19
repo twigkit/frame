@@ -13,6 +13,10 @@
  */
 package twigkit.frame;
 
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
+import net.sf.ehcache.Element;
 import net.sf.ehcache.event.CacheEventListener;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
@@ -27,8 +31,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
-
-import net.sf.ehcache.*;
 
 
 /**
@@ -80,7 +82,7 @@ public class CachedImageIOService extends BasicImageIOService {
     }
 
     public void setCacheName(String cacheName) {
-        if (cacheName != null & !cacheName.equals("")) {
+        if (cacheName != null && !cacheName.isEmpty()) {
             this.cacheName = cacheName;
             createCacheManager();
             cache = getOrCreateCache();
@@ -89,7 +91,7 @@ public class CachedImageIOService extends BasicImageIOService {
 
     public void createCacheManager() {
         URL url = getClass().getResource("/cache.xml");
-        this.cacheManager = CacheManager.newInstance(url);
+        cacheManager = CacheManager.newInstance(url);
     }
 
     public Ehcache getOrCreateCache() {
@@ -342,7 +344,7 @@ public class CachedImageIOService extends BasicImageIOService {
         return buf.toString();
     }
 
-    //This method is used to delete the file from the filesystem cache when it is evicted or expired from ehcache.
+    // This method is used to delete the file from the filesystem cache when it is evicted or expired from ehcache.
     public static boolean deleteFromRepository(String path) {
         File file = new File(path);
         if (file.exists()) {
@@ -350,5 +352,12 @@ public class CachedImageIOService extends BasicImageIOService {
             return true;
         }
         return false;
+    }
+
+    public void shutdownCacheManager() {
+        if (cacheManager != null) {
+            logger.debug("Shutting down cache manager for cache {}", cache.getName());
+            cacheManager.shutdown();
+        }
     }
 }
