@@ -15,8 +15,8 @@
 package twigkit.frame.util;
 
 
-import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageReader;
-import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
+import com.twelvemonkeys.imageio.plugins.tiff.TIFFImageReader;
+import com.twelvemonkeys.imageio.plugins.tiff.TIFFImageReaderSpi;
 import twigkit.frame.Image;
 
 import javax.imageio.ImageIO;
