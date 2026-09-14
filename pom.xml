@@ -56,24 +56,6 @@
         <url>https://github.com/twigkit/frame</url>
     </scm>
 
-    <repositories>
-        <repository>
-            <id>twigkit.com</id>
-            <name>TwigKit</name>
-            <url>http://twigkit.artifactoryonline.com/twigkit/repo/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-                <checksumPolicy>warn</checksumPolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-                <checksumPolicy>warn</checksumPolicy>
-            </snapshots>
-        </repository>
-    </repositories>
-
     <distributionManagement>
         <repository>
             <id>twigkit.com-releases</id>
