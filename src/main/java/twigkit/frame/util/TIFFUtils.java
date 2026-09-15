@@ -43,11 +43,34 @@ public class TIFFUtils {
 		TIFFImageReader t = (TIFFImageReader) new TIFFImageReaderSpi().createReaderInstance();
 		t.setInput(ImageIO.createImageInputStream(stream));
 
-		Image image = new Image(t.read(page));
+		Exception failure = null;
 
-		t.dispose();
-		stream.close();
+		try {
+			return new Image(t.read(page));
+		} catch (IOException e) {
+			failure = e;
+			throw e;
+		} catch (RuntimeException e) {
+			failure = e;
+			throw e;
+		} finally {
+			try {
+				t.dispose();
+			} catch (RuntimeException disposeFailure) {
+				if (failure == null) {
+					throw disposeFailure;
+				}
+				failure.addSuppressed(disposeFailure);
+			}
 
-		return image;
+			try {
+				stream.close();
+			} catch (IOException closeFailure) {
+				if (failure == null) {
+					throw closeFailure;
+				}
+				failure.addSuppressed(closeFailure);
+			}
+		}
 	}
 }

@@ -24,16 +24,40 @@ public class TIFFUtilsTest {
 		Image secondPage = TIFFUtils.getPage(sampleStream(), 1);
 
 		Assert.assertNotNull(secondPage);
-		Assert.assertTrue(secondPage.getWidth() > 0);
-		Assert.assertTrue(secondPage.getHeight() > 0);
+		Assert.assertEquals(1728, secondPage.getWidth());
+		Assert.assertEquals(2267, secondPage.getHeight());
 
-		Assert.assertFalse("second page should have different content to the first",
-				imagesEqual(firstPage, secondPage));
+		// Page 2 shares page 0's dimensions, so this actually exercises the
+		// pixel comparison loop in imagesEqual rather than short-circuiting
+		// on a width/height mismatch.
+		Image thirdPage = TIFFUtils.getPage(sampleStream(), 2);
+
+		Assert.assertNotNull(thirdPage);
+		Assert.assertEquals(1728, thirdPage.getWidth());
+		Assert.assertEquals(2266, thirdPage.getHeight());
+
+		Assert.assertFalse("pages of identical dimensions should still have different content",
+				imagesEqual(firstPage, thirdPage));
 	}
 
 	@Test(expected = IndexOutOfBoundsException.class)
 	public void multiPageOutOfRangeIndexIsRejected() throws IOException {
-		TIFFUtils.getPage(sampleStream(), Integer.MAX_VALUE);
+		int pageCount = countPages();
+
+		TIFFUtils.getPage(sampleStream(), pageCount);
+	}
+
+	private int countPages() throws IOException {
+		int pageCount = 0;
+
+		try {
+			while (true) {
+				TIFFUtils.getPage(sampleStream(), pageCount);
+				pageCount++;
+			}
+		} catch (IndexOutOfBoundsException e) {
+			return pageCount;
+		}
 	}
 
 	private boolean imagesEqual(Image a, Image b) {
